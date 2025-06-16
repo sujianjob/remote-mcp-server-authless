@@ -66,7 +66,7 @@ const payload = {
     roles: ['user']
 };
 
-const secret = '094562b93f73fcc7a65ecae3fd4d0deea66ba0e3266bdd6dc41f5eba7391c21c80ca9e053c570b6a4b7c727f3f2a6d19996f37606f1b64689d44eeb1fc74fb61';
+const secret = 'ibtZyMQ0_OOtm5BUIYVKa9o0Qy_Kx3N_NC0vqL-Eev4';
 
 generateJWT(payload, secret, 3600).then(token => {
     console.log(token);

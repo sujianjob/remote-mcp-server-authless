@@ -21,6 +21,6 @@
 	},
 	// 环境变量配置示例 - 在生产环境中请使用 wrangler secret 命令设置敏感信息
 	"vars": {
-		"JWT_SECRET": "InteractiveFeedbackMCP2025_1750073456_SecureKey!@#$%^&*()"
+		"JWT_SECRET": "ibtZyMQ0_OOtm5BUIYVKa9o0Qy_Kx3N_NC0vqL-Eev4"
 	}
 }
