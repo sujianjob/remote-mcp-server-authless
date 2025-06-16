@@ -1,6 +1,6 @@
-# Building a Remote MCP Server on Cloudflare (With Authentication)
+# Building a Remote MCP Server on Cloudflare (With JWT Authentication)
 
-This example allows you to deploy a remote MCP server with authentication support on Cloudflare Workers. The server supports multiple authentication methods including API Keys and JWT tokens.
+This example allows you to deploy a remote MCP server with JWT Bearer Token authentication on Cloudflare Workers. The server uses a simplified authentication mechanism for better maintainability.
 
 ## Get started: 
 
@@ -13,21 +13,17 @@ Alternatively, you can use the command line below to get the remote MCP Server c
 npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/remote-mcp-authless
 ```
 
-## 🔐 Authentication Configuration
+## 🔐 JWT Authentication Configuration
 
-This MCP server supports multiple authentication methods to secure your endpoints:
+This MCP server uses a simplified JWT Bearer Token authentication mechanism for better security and maintainability.
 
-### 1. API Key Authentication
+### Environment Variables
 
-Set up API keys using environment variables:
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `JWT_SECRET` | Secret key for JWT token validation | `your-super-secure-jwt-secret` |
 
-```bash
-# Set API keys (comma-separated for multiple keys)
-wrangler secret put API_KEYS
-# Enter: your-api-key-1,your-api-key-2
-```
-
-### 2. JWT Token Authentication
+### Setting up Authentication
 
 Configure JWT secret for token validation:
 
@@ -37,41 +33,7 @@ wrangler secret put JWT_SECRET
 # Enter: your-super-secure-jwt-secret
 ```
 
-### 3. CORS Configuration
-
-Configure allowed origins:
-
-```bash
-# Set allowed origins (comma-separated)
-wrangler secret put ALLOWED_ORIGINS
-# Enter: https://playground.ai.cloudflare.com,http://localhost:3000
-```
-
-### Environment Variables
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `API_KEYS` | Comma-separated list of valid API keys | `key1,key2,key3` |
-| `JWT_SECRET` | Secret key for JWT token validation | `your-jwt-secret` |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | `https://example.com,http://localhost:3000` |
-
-### Authentication Methods
-
-#### Using API Key
-
-Include the API key in your requests using one of these methods:
-
-1. **X-API-Key Header:**
-```bash
-curl -H "X-API-Key: your-api-key" https://your-worker.workers.dev/sse
-```
-
-2. **Authorization Header:**
-```bash
-curl -H "Authorization: ApiKey your-api-key" https://your-worker.workers.dev/sse
-```
-
-#### Using JWT Token
+### Authentication Method
 
 Include the JWT token in the Authorization header:
 
@@ -79,21 +41,16 @@ Include the JWT token in the Authorization header:
 curl -H "Authorization: Bearer your-jwt-token" https://your-worker.workers.dev/sse
 ```
 
-### Generating API Keys
-
-You can use the included utility functions to generate secure API keys:
-
-```typescript
-import { generateApiKey } from './src/auth-utils.js';
-
-// Generate a 32-character API key
-const apiKey = generateApiKey(32);
-console.log('Generated API Key:', apiKey);
-```
-
 ### Generating JWT Tokens
 
-For JWT tokens, you can use the utility functions:
+Use the included utility to generate JWT tokens:
+
+```bash
+# Generate a JWT token
+npm run generate-jwt
+```
+
+Or programmatically:
 
 ```typescript
 import { generateJWT } from './src/auth-utils.js';
@@ -118,9 +75,7 @@ You can connect to your MCP server from the Cloudflare AI Playground, which is a
 
 1. Go to https://playground.ai.cloudflare.com/
 2. Enter your deployed MCP server URL (`remote-mcp-server-authless.<your-account>.workers.dev/sse`)
-3. **Important:** If you have authentication enabled, you'll need to include authentication headers:
-   - For API Key: Add header `X-API-Key: your-api-key`
-   - For JWT: Add header `Authorization: Bearer your-jwt-token`
+3. **Important:** Add authentication header: `Authorization: Bearer your-jwt-token`
 4. You can now use your MCP tools directly from the playground!
 
 ## Health Check Endpoint
@@ -128,7 +83,7 @@ You can connect to your MCP server from the Cloudflare AI Playground, which is a
 The server includes a health check endpoint that doesn't require authentication:
 
 ```bash
-curl https://your-worker.workers.dev/health
+curl https://mcp.123648.xyz/health
 ```
 
 Response:
@@ -136,7 +91,7 @@ Response:
 {
   "status": "ok",
   "timestamp": "2024-01-01T00:00:00.000Z",
-  "service": "MCP Server with Auth"
+  "service": "MCP Server with JWT Auth"
 }
 ```
 
@@ -146,7 +101,7 @@ You can also connect to your remote MCP server from local MCP clients, by using 
 
 To connect to your MCP server from Claude Desktop, follow [Anthropic's Quickstart](https://modelcontextprotocol.io/quickstart/user) and within Claude Desktop go to Settings > Developer > Edit Config.
 
-### Without Authentication
+### Without Authentication (Development)
 
 ```json
 {
@@ -155,33 +110,14 @@ To connect to your MCP server from Claude Desktop, follow [Anthropic's Quickstar
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://localhost:8787/sse"  // or remote-mcp-server-authless.your-account.workers.dev/sse
+        "http://localhost:8787/sse"
       ]
     }
   }
 }
 ```
 
-### With API Key Authentication
-
-```json
-{
-  "mcpServers": {
-    "calculator": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://remote-mcp-server-authless.your-account.workers.dev/sse"
-      ],
-      "env": {
-        "MCP_REMOTE_HEADERS": "{\"X-API-Key\": \"your-api-key\"}"
-      }
-    }
-  }
-}
-```
-
-### With JWT Authentication
+### With JWT Authentication (Production)
 
 ```json
 {
@@ -210,9 +146,7 @@ Restart Claude and you should see the tools become available.
 2. Install dependencies: `npm install`
 3. Set up environment variables in `.dev.vars` file:
    ```
-   API_KEYS=test-key-1,test-key-2
    JWT_SECRET=your-local-jwt-secret
-   ALLOWED_ORIGINS=http://localhost:3000,https://playground.ai.cloudflare.com
    ```
 4. Start development server: `npm run dev`
 
@@ -223,33 +157,34 @@ Test the health endpoint (no auth required):
 curl http://localhost:8787/health
 ```
 
-Test with API key:
+Test with JWT token:
 ```bash
-curl -H "X-API-Key: test-key-1" http://localhost:8787/sse
+curl -H "Authorization: Bearer your-jwt-token" http://localhost:8787/sse
 ```
 
-Test with invalid API key (should return 401):
+Test with invalid JWT token (should return 401):
 ```bash
-curl -H "X-API-Key: invalid-key" http://localhost:8787/sse
+curl -H "Authorization: Bearer invalid-token" http://localhost:8787/sse
 ```
 
 ### Security Best Practices
 
-1. **Use Strong API Keys**: Generate cryptographically secure API keys with sufficient length (32+ characters)
-2. **Rotate Keys Regularly**: Implement a key rotation strategy for production environments
+1. **Use Strong JWT Secrets**: Generate cryptographically secure JWT secrets with sufficient length (64+ characters)
+2. **Rotate Secrets Regularly**: Implement a secret rotation strategy for production environments
 3. **Use HTTPS**: Always use HTTPS in production to protect authentication tokens in transit
-4. **Limit CORS Origins**: Configure `ALLOWED_ORIGINS` to only include trusted domains
-5. **Monitor Access**: Review logs regularly for suspicious authentication attempts
-6. **Environment Separation**: Use different keys for development, staging, and production environments
+4. **Monitor Access**: Review logs regularly for suspicious authentication attempts
+5. **Environment Separation**: Use different secrets for development, staging, and production environments
+6. **Token Expiry**: Set appropriate expiration times for JWT tokens
 
 ### Troubleshooting
 
 **Authentication Failed Errors:**
-- Verify your API key or JWT token is correct
-- Check that the authentication header is properly formatted
-- Ensure the origin is in the `ALLOWED_ORIGINS` list
+- Verify your JWT token is correct and not expired
+- Check that the Authorization header is properly formatted (`Authorization: Bearer <token>`)
+- Ensure the JWT_SECRET environment variable is correctly set
 - Check the server logs for detailed error messages
 
-**CORS Errors:**
-- Add your domain to the `ALLOWED_ORIGINS` environment variable
-- Ensure you're including the protocol (http/https) in the origin configuration
+**Token Issues:**
+- Generate a new JWT token using `npm run generate-jwt`
+- Verify the token payload contains the required fields
+- Check token expiration time

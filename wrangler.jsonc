@@ -27,8 +27,6 @@
 	},
 	// 环境变量配置示例 - 在生产环境中请使用 wrangler secret 命令设置敏感信息
 	"vars": {
-		// "API_KEYS": "your-api-key-1,your-api-key-2",
-		// "JWT_SECRET": "your-jwt-secret-key",
-		// "ALLOWED_ORIGINS": "https://playground.ai.cloudflare.com,http://localhost:3000"
+		// "JWT_SECRET": "your-jwt-secret-key"
 	}
 }

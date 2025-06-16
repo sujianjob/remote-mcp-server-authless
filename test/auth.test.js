@@ -18,38 +18,6 @@ if (!globalThis.btoa) {
 }
 
 // 内联实现必要的函数
-function generateApiKey(length = 32) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    const randomArray = new Uint8Array(length);
-    crypto.getRandomValues(randomArray);
-
-    for (let i = 0; i < length; i++) {
-        result += chars[randomArray[i] % chars.length];
-    }
-
-    return result;
-}
-
-function validateApiKey(apiKey, validKeys) {
-    if (!apiKey) {
-        return { success: false, error: 'API key is required' };
-    }
-
-    if (!validKeys || validKeys.length === 0) {
-        return { success: false, error: 'No valid API keys configured' };
-    }
-
-    if (validKeys.includes(apiKey)) {
-        return {
-            success: true,
-            userId: `api_key_user_${apiKey.slice(-8)}`,
-            metadata: { authMethod: 'api_key' }
-        };
-    }
-
-    return { success: false, error: 'Invalid API key' };
-}
 
 async function validateJWT(token, secret) {
     try {
@@ -141,21 +109,8 @@ if (!globalThis.atob) {
 
 // 模拟环境变量
 const mockEnv = {
-    API_KEYS: 'test-key-1,test-key-2',
-    JWT_SECRET: 'test-jwt-secret-12345',
-    ALLOWED_ORIGINS: 'http://localhost:3000,https://example.com'
+    JWT_SECRET: 'test-jwt-secret-12345'
 };
-
-// 测试API Key验证
-console.log('🧪 测试API Key验证...');
-
-// 测试有效的API Key
-const validApiKeyResult = validateApiKey('test-key-1', ['test-key-1', 'test-key-2']);
-console.log('✅ 有效API Key测试:', validApiKeyResult.success ? '通过' : '失败');
-
-// 测试无效的API Key
-const invalidApiKeyResult = validateApiKey('invalid-key', ['test-key-1', 'test-key-2']);
-console.log('✅ 无效API Key测试:', !invalidApiKeyResult.success ? '通过' : '失败');
 
 // 测试JWT验证
 console.log('\n🧪 测试JWT验证...');
@@ -184,10 +139,6 @@ async function testJWT() {
 async function testBasicFunctions() {
     console.log('\n🧪 测试基本功能...');
 
-    // 测试API Key生成
-    const apiKey = generateApiKey(32);
-    console.log('✅ API Key生成测试:', apiKey.length === 32 ? '通过' : '失败');
-
     // 测试JWT生成和验证
     const payload = { userId: 'test-user' };
     const token = await generateJWT(payload, 'test-jwt-secret-12345', 3600);
@@ -204,7 +155,8 @@ async function runTests() {
     console.log('\n💡 提示：');
     console.log('  - 在开发环境中运行: npm run dev');
     console.log('  - 测试健康检查: curl http://localhost:8787/health');
-    console.log('  - 测试API Key: curl -H "X-API-Key: Gv6HoiBHiuvrSDPjnNJPcgj6ldSMU6NK" -H "Origin: http://localhost:3000" http://localhost:8787/sse');
+    console.log('  - 生成JWT Token: npm run generate-jwt');
+    console.log('  - 测试JWT鉴权: curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:8787/sse');
 }
 
 runTests().catch(console.error);

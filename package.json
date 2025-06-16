@@ -12,6 +12,7 @@
 		"cf-typegen": "wrangler types",
 		"type-check": "tsc --noEmit",
 		"setup-auth": "node scripts/setup-auth.js",
+		"setup-production": "scripts\\setup-production.bat",
 		"generate-jwt": "node scripts/generate-jwt.js",
 		"test-auth": "node test/auth.test.js",
 		"test-curl": "curl -H \"X-API-Key: Gv6HoiBHiuvrSDPjnNJPcgj6ldSMU6NK\" -H \"Origin: http://localhost:3000\" http://localhost:8787/health"

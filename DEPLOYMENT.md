@@ -60,13 +60,13 @@ npm run deploy
 
 ```bash
 # 健康检查（无需鉴权）
-curl https://your-worker.workers.dev/health
+curl https://mcp.123648.xyz/health
 
 # 测试API Key鉴权
-curl -H "X-API-Key: your-api-key" https://your-worker.workers.dev/sse
+curl -H "X-API-Key: your-api-key" https://mcp.123648.xyz/sse
 
 # 测试无效鉴权（应返回401）
-curl -H "X-API-Key: invalid-key" https://your-worker.workers.dev/sse
+curl -H "X-API-Key: invalid-key" https://mcp.123648.xyz/sse
 ```
 
 ### 3. 配置客户端
@@ -82,7 +82,7 @@ curl -H "X-API-Key: invalid-key" https://your-worker.workers.dev/sse
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://your-worker.workers.dev/sse"
+        "https://mcp.123648.xyz/sse"
       ],
       "env": {
         "MCP_REMOTE_HEADERS": "{\"X-API-Key\": \"your-api-key\"}"
@@ -95,7 +95,7 @@ curl -H "X-API-Key: invalid-key" https://your-worker.workers.dev/sse
 #### Cloudflare AI Playground配置
 
 1. 访问 https://playground.ai.cloudflare.com/
-2. 输入MCP服务器URL: `https://your-worker.workers.dev/sse`
+2. 输入MCP服务器URL: `https://mcp.123648.xyz/sse`
 3. 添加认证头: `X-API-Key: your-api-key`
 
 ## 安全检查清单

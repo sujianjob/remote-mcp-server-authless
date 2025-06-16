@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { authenticate, createAuthErrorResponse, handleCORS } from "./auth.js";
+import { authenticate, createAuthErrorResponse } from "./auth.js";
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -63,22 +63,15 @@ export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
-		// 处理CORS预检请求
-		const corsResponse = handleCORS(request);
-		if (corsResponse) {
-			return corsResponse;
-		}
-
 		// 健康检查端点（无需鉴权）
 		if (url.pathname === "/health") {
 			return new Response(JSON.stringify({
 				status: "ok",
 				timestamp: new Date().toISOString(),
-				service: "MCP Server with Auth"
+				service: "MCP Server with JWT Auth"
 			}), {
 				headers: {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
+					"Content-Type": "application/json"
 				}
 			});
 		}
@@ -92,14 +85,13 @@ export default {
 				return createAuthErrorResponse(authResult.error || "Authentication failed");
 			}
 
-			console.log(`Authentication successful for user: ${authResult.userId} using ${authResult.metadata?.authMethod}`);
+			console.log(`Authentication successful for user: ${authResult.userId}`);
 
 			// 在请求头中添加用户信息，供下游使用
 			const modifiedRequest = new Request(request, {
 				headers: {
 					...Object.fromEntries(request.headers.entries()),
-					'X-User-ID': authResult.userId || 'unknown',
-					'X-Auth-Method': authResult.metadata?.authMethod || 'unknown'
+					'X-User-ID': authResult.userId || 'unknown'
 				}
 			});
 

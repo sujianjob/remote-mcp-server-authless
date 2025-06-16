@@ -1,23 +1,7 @@
 /**
- * 鉴权工具函数
- * 提供JWT生成、API Key生成等实用工具
+ * JWT鉴权工具函数
+ * 提供JWT生成和验证等实用工具
  */
-
-/**
- * 生成随机API Key
- */
-export function generateApiKey(length: number = 32): string {
-	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	let result = '';
-	const randomArray = new Uint8Array(length);
-	crypto.getRandomValues(randomArray);
-	
-	for (let i = 0; i < length; i++) {
-		result += chars[randomArray[i] % chars.length];
-	}
-	
-	return result;
-}
 
 /**
  * 生成JWT Token (简化版本)
@@ -106,14 +90,7 @@ export function generateSecureRandom(length: number = 32): string {
 	return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * 验证API Key格式
- */
-export function isValidApiKeyFormat(apiKey: string): boolean {
-	// API Key应该是32-64个字符的字母数字字符串
-	const regex = /^[A-Za-z0-9]{32,64}$/;
-	return regex.test(apiKey);
-}
+
 
 /**
  * 创建基本的用户会话信息
