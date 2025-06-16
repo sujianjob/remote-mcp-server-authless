@@ -10,7 +10,8 @@ import {
 	CreateFeedbackData,
 	SessionStatusData,
 	FeedbackResultData,
-	SubmitFeedbackData
+	SubmitFeedbackData,
+	FeedbackListData
 } from '../types/feedback.js';
 import {
 	createSuccessResponse,
@@ -143,35 +144,66 @@ export class FeedbackHandler {
 		}, '获取反馈结果失败');
 	}
 	/**
-	 * 处理获取反馈界面请求
-	 * GET /feedback/{sessionId}
+	 * 处理获取反馈列表请求
+	 * GET /api/feedback/list
 	 */
-	async handleGetFeedbackUI(request: Request, sessionId: string): Promise<Response> {
+	async handleGetFeedbackList(request: Request): Promise<Response> {
 		// 验证HTTP方法
 		if (!validateHttpMethod(request.method, ['GET'])) {
 			return createMethodNotAllowedResponse(['GET']);
 		}
 
-		// 验证会话ID格式
-		if (!validateSessionId(sessionId)) {
-			return createNotFoundResponse('反馈页面');
+		const url = new URL(request.url);
+		const status = url.searchParams.get('status') as any;
+		const limit = parseInt(url.searchParams.get('limit') || '50');
+
+		return handleAsyncOperation(async () => {
+			const result = await this.feedbackService.getFeedbackList(status, limit);
+			return result;
+		}, '获取反馈列表失败');
+	}
+
+	/**
+	 * 处理获取反馈界面请求
+	 * GET /feedback 或 GET /feedback/{sessionId}
+	 */
+	async handleGetFeedbackUI(request: Request, sessionId?: string): Promise<Response> {
+		// 验证HTTP方法
+		if (!validateHttpMethod(request.method, ['GET'])) {
+			return createMethodNotAllowedResponse(['GET']);
 		}
 
 		try {
-			// 检查会话是否存在
-			const session = await this.feedbackService.getSession(sessionId);
-			if (!session) {
-				return createNotFoundResponse('反馈会话');
-			}
-
-			// 生成HTML界面
-			const html = await this.generateFeedbackHTML(session, request);
-			return new Response(html, {
-				headers: {
-					'Content-Type': 'text/html; charset=utf-8',
-					'Cache-Control': 'no-cache'
+			if (!sessionId) {
+				// 显示反馈列表页面
+				const html = await this.generateFeedbackListHTML(request);
+				return new Response(html, {
+					headers: {
+						'Content-Type': 'text/html; charset=utf-8',
+						'Cache-Control': 'no-cache'
+					}
+				});
+			} else {
+				// 验证会话ID格式
+				if (!validateSessionId(sessionId)) {
+					return createNotFoundResponse('反馈页面');
 				}
-			});
+
+				// 检查会话是否存在
+				const session = await this.feedbackService.getSession(sessionId);
+				if (!session) {
+					return createNotFoundResponse('反馈会话');
+				}
+
+				// 生成反馈详情页面
+				const html = await this.generateFeedbackDetailHTML(session, request);
+				return new Response(html, {
+					headers: {
+						'Content-Type': 'text/html; charset=utf-8',
+						'Cache-Control': 'no-cache'
+					}
+				});
+			}
 		} catch (error) {
 			console.error('获取反馈界面失败:', error);
 			const { createInternalErrorResponse } = await import('../utils/response.js');
@@ -180,12 +212,27 @@ export class FeedbackHandler {
 	}
 
 	/**
-	 * 生成反馈界面HTML
+	 * 生成反馈列表页面HTML
 	 */
-	private async generateFeedbackHTML(session: any, request: Request): Promise<string> {
+	private async generateFeedbackListHTML(request: Request): Promise<string> {
+		const url = new URL(request.url);
+		const theme = url.searchParams.get('theme') || 'dark';
+		const lang = url.searchParams.get('lang') || 'zh';
+
+		// 获取反馈列表数据
+		const feedbackList = await this.feedbackService.getFeedbackList('pending', 50);
+
+		const { generateFeedbackListHTML } = await import('../utils/template.js');
+		return generateFeedbackListHTML(feedbackList, request, theme, lang);
+	}
+
+	/**
+	 * 生成反馈详情页面HTML
+	 */
+	private async generateFeedbackDetailHTML(session: any, request: Request): Promise<string> {
 		// 使用模板工具生成HTML
-		const { generateFeedbackHTML } = await import('../utils/template.js');
-		return generateFeedbackHTML(session, request);
+		const { generateFeedbackDetailHTML } = await import('../utils/template.js');
+		return generateFeedbackDetailHTML(session, request);
 	}
 }
 

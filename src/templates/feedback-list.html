@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{lang === 'zh' ? 'Interactive Feedback - 待处理反馈' : 'Interactive Feedback - Pending Tasks'}}</title>
+    <style>
+        :root {
+            --bg-primary: {{theme === 'dark' ? '#1a1a1a' : '#ffffff'}};
+            --bg-secondary: {{theme === 'dark' ? '#2a2a2a' : '#f8f9fa'}};
+            --bg-tertiary: {{theme === 'dark' ? '#3a3a3a' : '#e9ecef'}};
+            --text-primary: {{theme === 'dark' ? '#ffffff' : '#212529'}};
+            --text-secondary: {{theme === 'dark' ? '#b0b0b0' : '#6c757d'}};
+            --border-color: {{theme === 'dark' ? '#404040' : '#dee2e6'}};
+            --accent-color: #007bff;
+            --accent-hover: #0056b3;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-primary);
+        }
+
+        .main-content {
+            padding: 40px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .pending { color: var(--warning-color); }
+        .completed { color: var(--success-color); }
+        .total { color: var(--accent-color); }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .filter-btn:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .feedback-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .feedback-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .feedback-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 123, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        .status-completed {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .status-expired {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .ai-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--accent-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .refresh-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+            transition: background 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .filter-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    🎯 Interactive Feedback
+                </div>
+                <button class="theme-toggle" onclick="toggleTheme()" title="{{lang === 'zh' ? '切换主题' : 'Toggle theme'}}">
+                    <span id="theme-icon">{{theme === 'dark' ? '☀️' : '🌙'}}</span>
+                    {{theme === 'dark' ? (lang === 'zh' ? '明亮' : 'Light') : (lang === 'zh' ? '暗色' : 'Dark')}}
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- 统计信息 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number total">{{total}}</div>
+                    <div class="stat-label">{{lang === 'zh' ? '总任务数' : 'Total Tasks'}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number pending">{{pending}}</div>
+                    <div class="stat-label">{{lang === 'zh' ? '待处理' : 'Pending'}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number completed">{{completed}}</div>
+                    <div class="stat-label">{{lang === 'zh' ? '已完成' : 'Completed'}}</div>
+                </div>
+            </div>
+
+            <!-- 反馈列表 -->
+            <div class="section-header">
+                <h2 class="section-title">{{lang === 'zh' ? '待处理反馈' : 'Pending Feedback'}}</h2>
+                <div class="filter-buttons">
+                    <a href="?status=pending&theme={{theme}}&lang={{lang}}" class="filter-btn {{currentFilter === 'pending' ? 'active' : ''}}">
+                        {{lang === 'zh' ? '待处理' : 'Pending'}}
+                    </a>
+                    <a href="?status=completed&theme={{theme}}&lang={{lang}}" class="filter-btn {{currentFilter === 'completed' ? 'active' : ''}}">
+                        {{lang === 'zh' ? '已完成' : 'Completed'}}
+                    </a>
+                    <a href="?theme={{theme}}&lang={{lang}}" class="filter-btn {{!currentFilter ? 'active' : ''}}">
+                        {{lang === 'zh' ? '全部' : 'All'}}
+                    </a>
+                </div>
+            </div>
+
+            <div class="feedback-grid" id="feedback-list">
+                {{#if items.length}}
+                    {{#each items}}
+                    <div class="feedback-card" onclick="openFeedback('{{sessionId}}')">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">{{title}}</h3>
+                                <div class="card-meta">
+                                    <span>{{formatDate createdAt}}</span>
+                                    <span>•</span>
+                                    <span>{{lang === 'zh' ? '过期时间' : 'Expires'}}: {{formatDate expiresAt}}</span>
+                                </div>
+                            </div>
+                            <span class="status-badge status-{{status}}">{{status}}</span>
+                        </div>
+                        
+                        <p class="card-description">{{message}}</p>
+                        
+                        <div class="card-footer">
+                            <div class="ai-indicator">
+                                {{#if hasAiContent}}
+                                    <span>🤖</span>
+                                    <span>{{lang === 'zh' ? '包含AI内容' : 'Contains AI Content'}}</span>
+                                {{else}}
+                                    <span>📝</span>
+                                    <span>{{lang === 'zh' ? '普通反馈' : 'Regular Feedback'}}</span>
+                                {{/if}}
+                            </div>
+                            <span>{{sessionId.substring(0, 8)}}...</span>
+                        </div>
+                    </div>
+                    {{/each}}
+                {{else}}
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <h3>{{lang === 'zh' ? '暂无待处理反馈' : 'No Pending Feedback'}}</h3>
+                        <p>{{lang === 'zh' ? '当前没有需要处理的反馈任务' : 'There are no feedback tasks to process at the moment'}}</p>
+                        <button class="refresh-btn" onclick="location.reload()">
+                            {{lang === 'zh' ? '刷新页面' : 'Refresh Page'}}
+                        </button>
+                    </div>
+                {{/if}}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const currentTheme = '{{theme}}';
+        const currentLang = '{{lang}}';
+
+        // 主题切换
+        function toggleTheme() {
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const url = new URL(window.location);
+            url.searchParams.set('theme', newTheme);
+            window.location.href = url.toString();
+        }
+
+        // 打开反馈详情
+        function openFeedback(sessionId) {
+            const url = new URL(window.location);
+            url.pathname = `/feedback/${sessionId}`;
+            window.location.href = url.toString();
+        }
+
+        // 格式化日期
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US');
+        }
+
+        // 自动刷新（可选）
+        let autoRefreshInterval;
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(() => {
+                location.reload();
+            }, 30000); // 30秒刷新一次
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        // 页面可见性变化时控制自动刷新
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        });
+
+        // 启动自动刷新
+        startAutoRefresh();
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                location.reload();
+            }
+            if (e.key === 't' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+    </script>
+</body>
+</html>

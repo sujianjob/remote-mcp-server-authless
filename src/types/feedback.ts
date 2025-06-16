@@ -21,7 +21,9 @@ export interface ApiResponse<T = any> {
 // 会话数据结构
 export interface FeedbackSession {
 	sessionId: string;
-	message: string;
+	title: string; // 任务标题
+	message: string; // 任务描述
+	aiContent?: string; // AI反馈内容（Markdown格式）
 	predefinedOptions?: string[];
 	status: SessionStatus;
 	createdAt: string;
@@ -37,7 +39,9 @@ export interface FeedbackSession {
 
 // API 请求类型
 export interface CreateFeedbackRequest {
-	message: string;
+	title: string; // 任务标题
+	message: string; // 任务描述
+	aiContent?: string; // AI反馈内容（Markdown格式）
 	predefinedOptions?: string[];
 	timeout?: number; // 超时时间（秒），默认300秒
 	metadata?: Record<string, any>;
@@ -80,6 +84,25 @@ export interface SubmitFeedbackData {
 	sessionId: string;
 	status: string;
 	submittedAt: string;
+}
+
+// 反馈列表相关类型
+export interface FeedbackListItem {
+	sessionId: string;
+	title: string;
+	message: string;
+	status: SessionStatus;
+	createdAt: string;
+	expiresAt: string;
+	submittedAt?: string;
+	hasAiContent: boolean;
+}
+
+export interface FeedbackListData {
+	items: FeedbackListItem[];
+	total: number;
+	pending: number;
+	completed: number;
 }
 
 // WebSocket 消息类型

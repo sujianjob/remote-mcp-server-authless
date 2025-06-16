@@ -10,6 +10,8 @@ import {
 	FeedbackResultData,
 	SubmitFeedbackRequest,
 	SubmitFeedbackData,
+	FeedbackListData,
+	FeedbackListItem,
 	SessionStatus,
 	KV_KEYS,
 	CONSTANTS
@@ -28,7 +30,9 @@ export class FeedbackService {
 
 		const session: FeedbackSession = {
 			sessionId,
+			title: request.title,
 			message: request.message,
+			aiContent: request.aiContent,
 			predefinedOptions: request.predefinedOptions,
 			status: 'pending',
 			createdAt: new Date().toISOString(),
@@ -185,6 +189,82 @@ export class FeedbackService {
 			submittedAt: session.submittedAt!,
 			metadata: session.metadata
 		};
+	}
+
+	/**
+	 * 获取反馈列表（支持分页和状态过滤）
+	 */
+	async getFeedbackList(status?: SessionStatus, limit: number = 50): Promise<FeedbackListData> {
+		try {
+			// 注意：这是一个简化实现，在生产环境中应该使用更高效的索引方案
+			// KV存储不支持复杂查询，这里我们使用list操作来获取所有会话
+			const listResult = await this.kv.list({ prefix: 'feedback:session:' });
+
+			const sessions: FeedbackSession[] = [];
+
+			// 获取所有会话数据
+			for (const key of listResult.keys) {
+				try {
+					const sessionData = await this.kv.get(key.name);
+					if (sessionData) {
+						const session: FeedbackSession = JSON.parse(sessionData);
+
+						// 检查是否过期
+						if (new Date() > new Date(session.expiresAt)) {
+							session.status = 'expired';
+						}
+
+						sessions.push(session);
+					}
+				} catch (error) {
+					console.error(`Error parsing session ${key.name}:`, error);
+				}
+			}
+
+			// 按状态过滤
+			let filteredSessions = sessions;
+			if (status) {
+				filteredSessions = sessions.filter(s => s.status === status);
+			}
+
+			// 按创建时间倒序排序
+			filteredSessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+			// 限制数量
+			const limitedSessions = filteredSessions.slice(0, limit);
+
+			// 转换为列表项格式
+			const items: FeedbackListItem[] = limitedSessions.map(session => ({
+				sessionId: session.sessionId,
+				title: session.title,
+				message: session.message,
+				status: session.status,
+				createdAt: session.createdAt,
+				expiresAt: session.expiresAt,
+				submittedAt: session.submittedAt,
+				hasAiContent: !!session.aiContent
+			}));
+
+			// 统计信息
+			const total = sessions.length;
+			const pending = sessions.filter(s => s.status === 'pending').length;
+			const completed = sessions.filter(s => s.status === 'completed').length;
+
+			return {
+				items,
+				total,
+				pending,
+				completed
+			};
+		} catch (error) {
+			console.error('Error getting feedback list:', error);
+			return {
+				items: [],
+				total: 0,
+				pending: 0,
+				completed: 0
+			};
+		}
 	}
 
 	/**

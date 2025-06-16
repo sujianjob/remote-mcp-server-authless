@@ -31,6 +31,7 @@ export class MyMCP extends McpAgent {
 
 					const baseUrl = this.getBaseUrl();
 					const createRequest = {
+						title: message.substring(0, 50) + (message.length > 50 ? '...' : ''), // 使用消息前50字符作为标题
 						message,
 						predefinedOptions,
 						timeout,
@@ -299,7 +300,7 @@ export default {
 		}
 
 		// 反馈界面路由（无需鉴权）
-		if (url.pathname.startsWith("/feedback/")) {
+		if (url.pathname === "/feedback" || url.pathname.startsWith("/feedback/")) {
 			return handleFeedbackUI(request, env, ctx);
 		}
 
@@ -329,6 +330,7 @@ async function handleFeedbackAPI(request: Request, env: Env, _ctx: ExecutionCont
 
 	// 检查哪些端点需要认证
 	const needsAuth = url.pathname === "/api/feedback/create" ||
+					  url.pathname === "/api/feedback/list" ||
 					  (sessionId && (action === "status" || action === "result"));
 
 	// 只对需要认证的端点进行鉴权
@@ -356,6 +358,9 @@ async function handleFeedbackAPI(request: Request, env: Env, _ctx: ExecutionCont
 		if (url.pathname === "/api/feedback/create") {
 			// 创建反馈会话（需要认证）
 			response = await feedbackHandler.handleCreateSession(request, baseUrl);
+		} else if (url.pathname === "/api/feedback/list") {
+			// 获取反馈列表（需要认证）
+			response = await feedbackHandler.handleGetFeedbackList(request);
 		} else if (sessionId && action === "status") {
 			// 获取会话状态（需要认证）
 			response = await feedbackHandler.handleGetStatus(request, sessionId);
@@ -390,11 +395,6 @@ async function handleFeedbackUI(request: Request, env: Env, _ctx: ExecutionConte
 
 	// 解析会话ID
 	const { sessionId } = parseApiPath(url.pathname);
-
-	if (!sessionId) {
-		const { createNotFoundResponse } = await import('./utils/response.js');
-		return createNotFoundResponse('反馈页面');
-	}
 
 	// 初始化服务
 	const feedbackService = new FeedbackService(env.OAUTH_KV, env);
