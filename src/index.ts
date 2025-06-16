@@ -449,14 +449,20 @@ async function handleMCPEndpoints(request: Request, env: Env, ctx: ExecutionCont
 
 	const url = new URL(request.url);
 
-	if (url.pathname === "/sse" || url.pathname === "/sse/message") {
-		return MyMCP.serveSSE("/sse").fetch(modifiedRequest, env, ctx);
-	}
+	try {
+		if (url.pathname === "/sse" || url.pathname === "/sse/message") {
+			return await MyMCP.serveSSE("/sse", { binding: "MCP_OBJECT" }).fetch(modifiedRequest, env, ctx);
+		}
 
-	if (url.pathname === "/mcp") {
-		return MyMCP.serve("/mcp").fetch(modifiedRequest, env, ctx);
-	}
+		if (url.pathname === "/mcp") {
+			return await MyMCP.serve("/mcp", { binding: "MCP_OBJECT" }).fetch(modifiedRequest, env, ctx);
+		}
 
-	const { createNotFoundResponse } = await import('./utils/response.js');
-	return createNotFoundResponse('MCP端点');
+		const { createNotFoundResponse } = await import('./utils/response.js');
+		return createNotFoundResponse('MCP端点');
+	} catch (error) {
+		console.error('MCP endpoint error:', error);
+		const { createInternalErrorResponse } = await import('./utils/response.js');
+		return createInternalErrorResponse(`MCP处理失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
+	}
 }
