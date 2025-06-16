@@ -14,7 +14,7 @@ export class MyMCP extends McpAgent {
 	env!: Env;
 
 	async init() {
-		// Interactive feedback tool - 使用新的API架构
+		// Interactive feedback tool - 等待用户反馈的实现
 		this.server.tool(
 			"interactive_feedback",
 			{
@@ -30,11 +30,12 @@ export class MyMCP extends McpAgent {
 					const feedbackService = new FeedbackService(this.env.OAUTH_KV, this.env);
 
 					const baseUrl = this.getBaseUrl();
+					const sessionTimeout = timeout || 300; // 默认5分钟
 					const createRequest = {
 						title: message.substring(0, 50) + (message.length > 50 ? '...' : ''), // 使用消息前50字符作为标题
 						message,
 						predefinedOptions,
-						timeout,
+						timeout: sessionTimeout,
 						metadata: {
 							...metadata,
 							source: 'mcp-tool',
@@ -44,39 +45,110 @@ export class MyMCP extends McpAgent {
 					};
 
 					const response = await feedbackService.createSession(createRequest, baseUrl);
+					const sessionId = response.sessionId;
 
-					// 返回格式化的响应
-					return {
-						content: [
-							{
-								type: "text",
-								text: `🎯 Interactive Feedback Session Created Successfully!\n\n` +
-									  `📋 Session Details:\n` +
-									  `   • Session ID: ${response.sessionId}\n` +
-									  `   • Expires at: ${response.expiresAt}\n\n` +
-									  `🌐 User Access:\n` +
-									  `   • Feedback URL: ${response.feedbackUrl}\n` +
-									  `   • Direct link for user to provide feedback\n\n` +
-									  `🔍 Monitoring:\n` +
-									  `   • Status URL: ${response.statusUrl}\n` +
-									  `   • Use this to check submission status\n\n` +
-									  `💡 Next Steps:\n` +
-									  `   1. Share the Feedback URL with the user\n` +
-									  `   2. Monitor the Status URL for responses\n` +
-									  `   3. Retrieve results when status shows 'completed'\n\n` +
-									  `⏰ Session will expire automatically after ${timeout || 300} seconds.`
+					// 显示会话创建信息
+					console.log(`🎯 Interactive Feedback Session Created: ${sessionId}`);
+					console.log(`📋 Feedback URL: ${response.feedbackUrl}`);
+					console.log(`⏰ Waiting for user feedback (timeout: ${sessionTimeout}s)...`);
+
+					// 等待用户反馈的轮询逻辑
+					const startTime = Date.now();
+					const maxWaitTime = sessionTimeout * 1000; // 转换为毫秒
+					const pollInterval = 2000; // 每2秒检查一次
+
+					while (true) {
+						const elapsedTime = Date.now() - startTime;
+
+						// 检查是否超时
+						if (elapsedTime >= maxWaitTime) {
+							return {
+								content: [
+									{
+										type: "text",
+										text: `⏰ **Feedback Session Timed Out**\n\n` +
+											  `📋 Session ID: ${sessionId}\n` +
+											  `⏱️ Timeout: ${sessionTimeout} seconds\n` +
+											  `📊 Status: No feedback received within the timeout period\n\n` +
+											  `💡 The user did not provide feedback before the session expired.\n` +
+											  `You may want to create a new session or contact the user directly.`
+									}
+								]
+							};
+						}
+
+						// 检查会话状态
+						const status = await feedbackService.getSessionStatus(sessionId);
+
+						if (!status) {
+							return {
+								content: [
+									{
+										type: "text",
+										text: `❌ **Session Error**\n\n` +
+											  `� Session ID: ${sessionId}\n` +
+											  `📊 Status: Session not found or expired\n\n` +
+											  `💡 The feedback session may have been deleted or expired.`
+									}
+								]
+							};
+						}
+
+						// 如果用户已提交反馈，获取结果并返回
+						if (status.status === 'completed') {
+							const result = await feedbackService.getFeedbackResult(sessionId);
+
+							if (result) {
+								let feedbackText = `✅ **Feedback Received Successfully!**\n\n`;
+								feedbackText += `� Session ID: ${sessionId}\n`;
+								feedbackText += `⏰ Submitted: ${result.submittedAt}\n`;
+								feedbackText += `⏱️ Response Time: ${Math.round(elapsedTime / 1000)} seconds\n\n`;
+								feedbackText += `💬 **User Feedback:**\n`;
+								feedbackText += `${result.feedback.combinedFeedback}\n\n`;
+
+								if (result.feedback.selectedOptions && result.feedback.selectedOptions.length > 0) {
+									feedbackText += `✅ **Selected Options:**\n`;
+									result.feedback.selectedOptions.forEach(option => {
+										feedbackText += `   • ${option}\n`;
+									});
+									feedbackText += `\n`;
+								}
+
+								if (result.feedback.freeText) {
+									feedbackText += `📝 **Additional Comments:**\n`;
+									feedbackText += `${result.feedback.freeText}\n\n`;
+								}
+
+								if (result.metadata) {
+									feedbackText += `📊 **Metadata:**\n`;
+									feedbackText += `\`\`\`json\n${JSON.stringify(result.metadata, null, 2)}\n\`\`\``;
+								}
+
+								return {
+									content: [
+										{
+											type: "text",
+											text: feedbackText
+										}
+									]
+								};
 							}
-						]
-					};
+						}
+
+						// 等待下次轮询
+						await new Promise(resolve => setTimeout(resolve, pollInterval));
+					}
+
 				} catch (error) {
 					console.error('Interactive feedback tool error:', error);
 					return {
 						content: [
 							{
 								type: "text",
-								text: `❌ Error creating feedback session:\n\n` +
-									  `${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
-									  `Please check your request parameters and try again.`
+								text: `❌ **Error in Interactive Feedback**\n\n` +
+									  `🔍 Error Details: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
+									  `💡 Please check your request parameters and try again.\n` +
+									  `If the problem persists, contact the system administrator.`
 							}
 						]
 					};
@@ -244,9 +316,8 @@ export class MyMCP extends McpAgent {
 	}
 
 	private getBaseUrl(): string {
-		// 在实际环境中，这应该从请求中获取
-		// 这里先用一个默认值，后续会改进
-		return 'https://remote-mcp-server-authless.sujianjob.workers.dev';
+		// 使用生产环境的域名
+		return 'https://mcp.123648.xyz';
 	}
 }
 
