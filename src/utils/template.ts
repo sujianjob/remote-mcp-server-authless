@@ -518,17 +518,47 @@ function generateSimpleFeedbackDetailHTML(data: TemplateData): string {
             width: 18px;
             height: 18px;
         }
+        .textarea-container {
+            position: relative;
+            margin-bottom: 8px;
+        }
         textarea {
             width: 100%;
-            min-height: 120px;
-            padding: 16px;
-            border: 1px solid ${isDark ? '#404040' : '#dee2e6'};
-            border-radius: 6px;
+            min-height: 150px;
+            padding: 20px;
+            border: 2px solid ${isDark ? '#404040' : '#dee2e6'};
+            border-radius: 8px;
             background: ${isDark ? '#1a1a1a' : '#ffffff'};
             color: ${isDark ? '#ffffff' : '#000000'};
-            font-family: inherit;
-            font-size: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
             resize: vertical;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            background: ${isDark ? '#2a2a2a' : '#fafafa'};
+        }
+        textarea::placeholder {
+            color: ${isDark ? '#888888' : '#6c757d'};
+            font-style: italic;
+        }
+        .char-count {
+            position: absolute;
+            bottom: -24px;
+            right: 0;
+            font-size: 12px;
+            color: ${isDark ? '#888888' : '#6c757d'};
+        }
+        .char-count.warning {
+            color: #ffc107;
+        }
+        .char-count.danger {
+            color: #dc3545;
         }
         .actions {
             display: flex;
@@ -623,11 +653,18 @@ function generateSimpleFeedbackDetailHTML(data: TemplateData): string {
 
                     <div class="form-section">
                         <h3>${isZh ? '您的反馈：' : 'Your Feedback:'}</h3>
-                        <textarea
-                            name="freeText"
-                            placeholder="${isZh ? '请输入您的反馈、建议或其他说明...' : 'Please enter your feedback, suggestions, or other comments...'}"
-                            maxlength="1000"
-                        ></textarea>
+                        <div class="textarea-container">
+                            <textarea
+                                id="freeText"
+                                name="freeText"
+                                placeholder="${isZh ? '请详细描述您的反馈、建议或其他说明...\n\n提示：您可以使用 Ctrl+Enter 快速提交' : 'Please provide detailed feedback, suggestions, or other comments...\n\nTip: Use Ctrl+Enter to submit quickly'}"
+                                maxlength="1000"
+                                oninput="updateCharCount()"
+                            ></textarea>
+                            <div class="char-count">
+                                <span id="charCount">0</span>/1000
+                            </div>
+                        </div>
                     </div>
 
                     <div class="actions">
@@ -674,6 +711,49 @@ function generateSimpleFeedbackDetailHTML(data: TemplateData): string {
                 </div>
             \`;
         }
+
+        function updateCharCount() {
+            const textarea = document.getElementById('freeText');
+            const charCount = document.getElementById('charCount');
+            const currentLength = textarea.value.length;
+
+            charCount.textContent = currentLength;
+
+            // 更新字符计数颜色
+            const countElement = charCount.parentElement;
+            countElement.classList.remove('warning', 'danger');
+
+            if (currentLength > 900) {
+                countElement.classList.add('danger');
+            } else if (currentLength > 800) {
+                countElement.classList.add('warning');
+            }
+        }
+
+        // 自动调整文本区域高度
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('freeText');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(150, textarea.scrollHeight) + 'px';
+        }
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('feedbackForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCharCount();
+            const textarea = document.getElementById('freeText');
+            textarea.addEventListener('input', () => {
+                updateCharCount();
+                autoResizeTextarea();
+            });
+        });
 
         document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -782,17 +862,30 @@ function generateSimpleFeedbackHTML(session: any, request: Request): string {
             align-items: center;
         }
         .option input { margin-right: 12px; width: 18px; height: 18px; }
-        textarea { 
-            width: 100%; 
-            min-height: 120px; 
-            padding: 16px; 
-            border-radius: 6px; 
-            border: 1px solid ${isDark ? '#404040' : '#dee2e6'};
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid ${isDark ? '#404040' : '#dee2e6'};
             background: ${isDark ? '#1a1a1a' : '#ffffff'};
             color: ${isDark ? '#ffffff' : '#000000'};
-            font-family: inherit;
-            font-size: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
             resize: vertical;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            background: ${isDark ? '#2a2a2a' : '#fafafa'};
+        }
+        textarea::placeholder {
+            color: ${isDark ? '#888888' : '#6c757d'};
+            font-style: italic;
         }
         .actions {
             display: flex;
@@ -877,10 +970,10 @@ function generateSimpleFeedbackHTML(session: any, request: Request): string {
             ` : ''}
             
             <div>
-                <h3>${isZh ? '其他说明：' : 'Additional comments:'}</h3>
-                <textarea 
-                    name="freeText" 
-                    placeholder="${isZh ? '请输入您的反馈...' : 'Please enter your feedback...'}"
+                <h3>${isZh ? '您的详细反馈：' : 'Your detailed feedback:'}</h3>
+                <textarea
+                    name="freeText"
+                    placeholder="${isZh ? '请详细描述您的反馈、建议或其他说明...\n\n提示：您可以使用 Ctrl+Enter 快速提交' : 'Please provide detailed feedback, suggestions, or other comments...\n\nTip: Use Ctrl+Enter to submit quickly'}"
                     maxlength="1000"
                 ></textarea>
             </div>

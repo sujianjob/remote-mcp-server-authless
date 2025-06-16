@@ -42,8 +42,10 @@ export class FeedbackService {
 
 		// 存储到KV
 		const kvKey = KV_KEYS.session(sessionId);
+		// KV TTL必须至少60秒，所以我们使用timeout和60的最大值
+		const kvTtl = Math.max(timeout, 60);
 		await this.kv.put(kvKey, JSON.stringify(session), {
-			expirationTtl: timeout
+			expirationTtl: kvTtl
 		});
 
 		// 返回响应

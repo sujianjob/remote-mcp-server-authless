@@ -17,6 +17,13 @@
 			}
 		]
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "interactive-feedback-db",
+			"database_id": "4ca1a6f7-a35e-4585-a7da-07f59528470b"
+		}
+	],
 	"kv_namespaces": [
 		{
 			"binding": "OAUTH_KV",
