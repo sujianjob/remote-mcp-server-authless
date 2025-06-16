@@ -5,6 +5,11 @@ declare namespace Cloudflare {
 		OAUTH_KV: KVNamespace;
 		MCP_OBJECT: DurableObjectNamespace<import("./src/index").MyMCP>;
 		ASSETS: Fetcher;
+
+		// 鉴权相关环境变量
+		API_KEYS?: string; // 逗号分隔的API密钥列表
+		JWT_SECRET?: string; // JWT签名密钥
+		ALLOWED_ORIGINS?: string; // 允许的CORS来源，逗号分隔
 	}
 }
 interface Env extends Cloudflare.Env {}

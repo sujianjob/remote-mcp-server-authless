@@ -1,0 +1,16 @@
+# 开发环境变量示例文件
+# 复制此文件为 .dev.vars 并填入实际值
+
+# API Keys (逗号分隔的多个密钥)
+API_KEYS=dev-key-1,dev-key-2,test-api-key-12345678
+
+# JWT 密钥 (用于签名和验证JWT tokens)
+JWT_SECRET=your-super-secure-jwt-secret-for-development
+
+# 允许的CORS来源 (逗号分隔)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8787,https://playground.ai.cloudflare.com
+
+# 注意：
+# 1. 在生产环境中，请使用 wrangler secret put 命令设置这些值
+# 2. 不要将真实的密钥提交到版本控制系统
+# 3. 使用强密码和长度足够的API密钥

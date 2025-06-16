@@ -1,6 +1,7 @@
 {
 	"name": "remote-mcp-server-authless",
 	"version": "0.0.0",
+	"type": "module",
 	"private": true,
 	"scripts": {
 		"deploy": "wrangler deploy",
@@ -9,7 +10,11 @@
 		"lint:fix": "biome lint --fix",
 		"start": "wrangler dev",
 		"cf-typegen": "wrangler types",
-		"type-check": "tsc --noEmit"
+		"type-check": "tsc --noEmit",
+		"setup-auth": "node scripts/setup-auth.js",
+		"generate-jwt": "node scripts/generate-jwt.js",
+		"test-auth": "node test/auth.test.js",
+		"test-curl": "curl -H \"X-API-Key: Gv6HoiBHiuvrSDPjnNJPcgj6ldSMU6NK\" -H \"Origin: http://localhost:3000\" http://localhost:8787/health"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.12.1",
