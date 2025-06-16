@@ -320,80 +320,26 @@ export class FeedbackService {
 	}
 
 	/**
-	 * 发送状态变化通知到WebSocket
+	 * 发送状态变化通知到WebSocket（暂时禁用）
 	 */
 	private async notifyStatusChange(sessionId: string, oldStatus: string, newStatus: string): Promise<void> {
-		if (!this.env?.MCP_OBJECT) {
-			return; // 没有配置WebSocket支持
-		}
-
-		try {
-			const durableObjectId = this.env.MCP_OBJECT.idFromName('websocket-manager');
-			const durableObject = this.env.MCP_OBJECT.get(durableObjectId);
-
-			await durableObject.fetch(new Request(`https://internal/notify/status_changed`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					sessionId,
-					type: 'status_changed',
-					data: { oldStatus, newStatus }
-				})
-			}));
-		} catch (error) {
-			console.error('Failed to send WebSocket notification:', error);
-		}
+		// WebSocket功能暂时禁用
+		console.log(`Status change notification: ${sessionId} ${oldStatus} -> ${newStatus}`);
 	}
 
 	/**
-	 * 发送反馈提交通知到WebSocket
+	 * 发送反馈提交通知到WebSocket（暂时禁用）
 	 */
 	private async notifyFeedbackSubmitted(sessionId: string, data: any): Promise<void> {
-		if (!this.env?.MCP_OBJECT) {
-			return; // 没有配置WebSocket支持
-		}
-
-		try {
-			const durableObjectId = this.env.MCP_OBJECT.idFromName('websocket-manager');
-			const durableObject = this.env.MCP_OBJECT.get(durableObjectId);
-
-			await durableObject.fetch(new Request(`https://internal/notify/feedback_submitted`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					sessionId,
-					type: 'feedback_submitted',
-					data
-				})
-			}));
-		} catch (error) {
-			console.error('Failed to send WebSocket notification:', error);
-		}
+		// WebSocket功能暂时禁用
+		console.log(`Feedback submitted notification: ${sessionId}`, data);
 	}
 
 	/**
-	 * 发送会话过期通知到WebSocket
+	 * 发送会话过期通知到WebSocket（暂时禁用）
 	 */
 	private async notifySessionExpired(sessionId: string, reason: string): Promise<void> {
-		if (!this.env?.MCP_OBJECT) {
-			return; // 没有配置WebSocket支持
-		}
-
-		try {
-			const durableObjectId = this.env.MCP_OBJECT.idFromName('websocket-manager');
-			const durableObject = this.env.MCP_OBJECT.get(durableObjectId);
-
-			await durableObject.fetch(new Request(`https://internal/notify/session_expired`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					sessionId,
-					type: 'session_expired',
-					data: { reason }
-				})
-			}));
-		} catch (error) {
-			console.error('Failed to send WebSocket notification:', error);
-		}
+		// WebSocket功能暂时禁用
+		console.log(`Session expired notification: ${sessionId}, reason: ${reason}`);
 	}
 }

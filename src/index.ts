@@ -250,22 +250,7 @@ export class MyMCP extends McpAgent {
 	}
 }
 
-// WebSocket管理的Durable Object
-export class WebSocketManager {
-	private sessionManager: any;
-
-	constructor(private state: DurableObjectState, private env: Env) {}
-
-	async fetch(request: Request): Promise<Response> {
-		// 延迟加载SessionManager以避免循环依赖
-		if (!this.sessionManager) {
-			const { SessionManager } = await import('./websocket/sessionManager.js');
-			this.sessionManager = new SessionManager(this.state, this.env);
-		}
-
-		return this.sessionManager.fetch(request);
-	}
-}
+// WebSocket功能暂时移除，使用简化的实现
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -431,13 +416,9 @@ async function handleWebSocketConnection(request: Request, env: Env, _ctx: Execu
 	}
 
 	try {
-		// 获取WebSocket管理的Durable Object实例
-		// 暂时使用MCP_OBJECT，后续会更新类型定义
-		const durableObjectId = env.MCP_OBJECT.idFromName('websocket-manager');
-		const durableObject = env.MCP_OBJECT.get(durableObjectId);
-
-		// 转发请求到Durable Object
-		return await durableObject.fetch(request);
+		// WebSocket功能暂时不可用，返回适当的响应
+		const { createNotImplementedResponse } = await import('./utils/response.js');
+		return createNotImplementedResponse('WebSocket功能暂时不可用');
 	} catch (error) {
 		console.error('WebSocket connection error:', error);
 		const { createInternalErrorResponse } = await import('./utils/response.js');

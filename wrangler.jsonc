@@ -8,28 +8,11 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2025-03-10",
 	"compatibility_flags": ["nodejs_compat"],
-	"migrations": [
-		{
-			"new_sqlite_classes": ["MyMCP", "WebSocketManager"],
-			"tag": "v2"
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"class_name": "MyMCP",
-				"name": "MCP_OBJECT"
-			},
-			{
-				"class_name": "WebSocketManager",
-				"name": "WEBSOCKET_MANAGER"
-			}
-		]
-	},
+
 	"kv_namespaces": [
 		{
 			"binding": "OAUTH_KV",
-			"id": "preview_id",
+			"id": "78857d9441204fbebd5b9db9d11b6909",
 			"preview_id": "preview_id"
 		}
 	],
@@ -38,6 +21,6 @@
 	},
 	// 环境变量配置示例 - 在生产环境中请使用 wrangler secret 命令设置敏感信息
 	"vars": {
-		// "JWT_SECRET": "your-jwt-secret-key"
+		"JWT_SECRET": "InteractiveFeedbackMCP2025_1750073456_SecureKey!@#$%^&*()"
 	}
 }

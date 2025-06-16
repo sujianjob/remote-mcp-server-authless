@@ -146,6 +146,17 @@ export function createInternalErrorResponse(message: string = '服务器内部�
 }
 
 /**
+ * 创建功能未实现响应
+ */
+export function createNotImplementedResponse(message: string = '功能暂未实现'): Response {
+	return createErrorResponse(
+		ErrorCode.INTERNAL_ERROR,
+		message,
+		501
+	);
+}
+
+/**
  * 创建方法不允许错误响应
  */
 export function createMethodNotAllowedResponse(allowedMethods: string[] = []): Response {
