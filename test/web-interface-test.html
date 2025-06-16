@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Feedback Web Interface Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .iframe-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .theme-buttons {
+            margin: 10px 0;
+        }
+        .code {
+            background: #f1f3f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Interactive Feedback Web Interface Test</h1>
+    <p>这个页面用于测试Interactive Feedback系统的Web界面功能。</p>
+
+    <div class="test-section">
+        <h2>📋 1. API测试</h2>
+        <p>首先测试API功能，创建一个反馈会话：</p>
+        <button class="test-button" onclick="createFeedbackSession()">创建反馈会话</button>
+        <button class="test-button" onclick="testSubmitFeedback()">测试提交反馈</button>
+        <button class="test-button" onclick="testGetResult()">获取反馈结果</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎨 2. Web界面测试</h2>
+        <p>测试不同主题和语言的反馈界面：</p>
+        <div class="theme-buttons">
+            <button class="test-button" onclick="loadFeedbackUI('dark', 'zh')">暗色主题 (中文)</button>
+            <button class="test-button" onclick="loadFeedbackUI('light', 'zh')">明亮主题 (中文)</button>
+            <button class="test-button" onclick="loadFeedbackUI('dark', 'en')">Dark Theme (English)</button>
+            <button class="test-button" onclick="loadFeedbackUI('light', 'en')">Light Theme (English)</button>
+        </div>
+        <div class="iframe-container">
+            <iframe id="feedback-iframe" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 3. 测试结果</h2>
+        <div id="test-summary">
+            <p>点击上面的按钮开始测试...</p>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:8787';
+        const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXIiLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwicm9sZXMiOlsidXNlciJdLCJpYXQiOjE3NTAwNjY2OTUsImV4cCI6MTc1MDA3MDI5NX0.ps_AKBHHQHmbBrL_dXS6KsDyRZaUImTrFJzqEXrZb6A';
+        
+        let currentSessionId = null;
+        let testResults = {
+            apiCreate: false,
+            apiSubmit: false,
+            apiResult: false,
+            webInterface: false
+        };
+
+        function showResult(containerId, message, isSuccess = true) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = message;
+            container.appendChild(resultDiv);
+        }
+
+        async function createFeedbackSession() {
+            try {
+                showResult('api-results', '🔄 正在创建反馈会话...', true);
+                
+                const response = await fetch(`${BASE_URL}/api/feedback/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: '这是一个Web界面测试会话，请选择您的偏好并提供反馈。',
+                        predefinedOptions: ['界面美观', '功能完善', '响应迅速', '易于使用'],
+                        timeout: 1800,
+                        metadata: {
+                            testCase: 'web-interface-test',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSessionId = result.data.sessionId;
+                    testResults.apiCreate = true;
+                    
+                    showResult('api-results', `
+                        ✅ <strong>会话创建成功！</strong><br>
+                        Session ID: <code>${result.data.sessionId}</code><br>
+                        Feedback URL: <a href="${result.data.feedbackUrl}" target="_blank">${result.data.feedbackUrl}</a><br>
+                        过期时间: ${new Date(result.data.expiresAt).toLocaleString()}
+                    `, true);
+                    
+                    // 自动加载反馈界面
+                    loadFeedbackUI('dark', 'zh');
+                } else {
+                    showResult('api-results', `❌ 会话创建失败: ${result.error.message}`, false);
+                }
+            } catch (error) {
+                showResult('api-results', `❌ 请求失败: ${error.message}`, false);
+            }
+            
+            updateTestSummary();
+        }
+
+        async function testSubmitFeedback() {
+            if (!currentSessionId) {
+                showResult('api-results', '❌ 请先创建反馈会话', false);
+                return;
+            }
+
+            try {
+                showResult('api-results', '🔄 正在提交测试反馈...', true);
+                
+                const response = await fetch(`${BASE_URL}/api/feedback/${currentSessionId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        selectedOptions: ['界面美观', '功能完善'],
+                        freeText: '这是一个自动化测试提交的反馈。Web界面看起来很棒！',
+                        metadata: {
+                            userAgent: navigator.userAgent,
+                            timestamp: new Date().toISOString(),
+                            testMode: true
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    testResults.apiSubmit = true;
+                    showResult('api-results', `
+                        ✅ <strong>反馈提交成功！</strong><br>
+                        状态: ${result.data.status}<br>
+                        提交时间: ${new Date(result.data.submittedAt).toLocaleString()}
+                    `, true);
+                } else {
+                    showResult('api-results', `❌ 反馈提交失败: ${result.error.message}`, false);
+                }
+            } catch (error) {
+                showResult('api-results', `❌ 请求失败: ${error.message}`, false);
+            }
+            
+            updateTestSummary();
+        }
+
+        async function testGetResult() {
+            if (!currentSessionId) {
+                showResult('api-results', '❌ 请先创建反馈会话', false);
+                return;
+            }
+
+            try {
+                showResult('api-results', '🔄 正在获取反馈结果...', true);
+                
+                const response = await fetch(`${BASE_URL}/api/feedback/${currentSessionId}/result`, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    testResults.apiResult = true;
+                    showResult('api-results', `
+                        ✅ <strong>反馈结果获取成功！</strong><br>
+                        选中选项: ${JSON.stringify(result.data.feedback.selectedOptions)}<br>
+                        自由文本: ${result.data.feedback.freeText}<br>
+                        组合反馈: <div class="code">${result.data.feedback.combinedFeedback}</div>
+                    `, true);
+                } else {
+                    showResult('api-results', `❌ 获取结果失败: ${result.error.message}`, false);
+                }
+            } catch (error) {
+                showResult('api-results', `❌ 请求失败: ${error.message}`, false);
+            }
+            
+            updateTestSummary();
+        }
+
+        function loadFeedbackUI(theme, lang) {
+            if (!currentSessionId) {
+                alert('请先创建反馈会话');
+                return;
+            }
+
+            const iframe = document.getElementById('feedback-iframe');
+            const url = `${BASE_URL}/feedback/${currentSessionId}?theme=${theme}&lang=${lang}`;
+            
+            iframe.src = url;
+            testResults.webInterface = true;
+            
+            showResult('api-results', `
+                🎨 <strong>加载反馈界面</strong><br>
+                主题: ${theme}<br>
+                语言: ${lang}<br>
+                URL: <a href="${url}" target="_blank">${url}</a>
+            `, true);
+            
+            updateTestSummary();
+        }
+
+        function updateTestSummary() {
+            const summary = document.getElementById('test-summary');
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(Boolean).length;
+            
+            let html = `
+                <h3>📊 测试进度: ${passed}/${total}</h3>
+                <ul>
+                    <li>✅ API创建会话: ${testResults.apiCreate ? '通过' : '待测试'}</li>
+                    <li>✅ API提交反馈: ${testResults.apiSubmit ? '通过' : '待测试'}</li>
+                    <li>✅ API获取结果: ${testResults.apiResult ? '通过' : '待测试'}</li>
+                    <li>✅ Web界面加载: ${testResults.webInterface ? '通过' : '待测试'}</li>
+                </ul>
+            `;
+            
+            if (passed === total) {
+                html += '<div class="result success">🎉 所有测试都通过了！Interactive Feedback系统运行正常。</div>';
+            }
+            
+            summary.innerHTML = html;
+        }
+
+        // 页面加载时的初始化
+        window.onload = function() {
+            showResult('api-results', '🚀 Web界面测试工具已准备就绪。点击"创建反馈会话"开始测试。', true);
+        };
+    </script>
+</body>
+</html>

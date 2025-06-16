@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        :root {
+            --bg-primary: {{theme === 'dark' ? '#1a1a1a' : '#ffffff'}};
+            --bg-secondary: {{theme === 'dark' ? '#2a2a2a' : '#f8f9fa'}};
+            --bg-tertiary: {{theme === 'dark' ? '#3a3a3a' : '#e9ecef'}};
+            --text-primary: {{theme === 'dark' ? '#ffffff' : '#212529'}};
+            --text-secondary: {{theme === 'dark' ? '#b0b0b0' : '#6c757d'}};
+            --border-color: {{theme === 'dark' ? '#404040' : '#dee2e6'}};
+            --accent-color: #007bff;
+            --accent-hover: #0056b3;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 24px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .message {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .message p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .form-section {
+            margin-bottom: 24px;
+        }
+
+        .form-section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-color);
+        }
+
+        .option input[type="checkbox"] {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-color);
+        }
+
+        .option label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .textarea-container {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .char-count {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-primary);
+        }
+
+        .success-page {
+            text-align: center;
+            padding: 40px 24px;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            color: white;
+            font-size: 32px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                border-radius: 8px;
+            }
+            
+            .header, .content {
+                padding: 20px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="{{lang === 'zh' ? '切换主题' : 'Toggle theme'}}">
+        <span id="theme-icon">{{theme === 'dark' ? '☀️' : '🌙'}}</span>
+    </button>
+
+    <div class="container">
+        <div class="header">
+            <h1>{{lang === 'zh' ? '需要您的反馈' : 'Your Feedback Required'}}</h1>
+            <div class="subtitle">{{lang === 'zh' ? '请提供您的意见和建议' : 'Please provide your input and suggestions'}}</div>
+        </div>
+
+        <div class="content">
+            <div id="alert" class="alert"></div>
+
+            <div class="message">
+                <p>{{message}}</p>
+            </div>
+
+            <form id="feedbackForm">
+                {{#if predefinedOptions}}
+                <div class="form-section">
+                    <h3>{{lang === 'zh' ? '请选择适用的选项：' : 'Please select applicable options:'}}</h3>
+                    <div class="options">
+                        {{#each predefinedOptions}}
+                        <div class="option">
+                            <input type="checkbox" id="option-{{@index}}" name="options" value="{{this}}">
+                            <label for="option-{{@index}}">{{this}}</label>
+                        </div>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/if}}
+
+                <div class="form-section">
+                    <h3>{{lang === 'zh' ? '其他说明：' : 'Additional comments:'}}</h3>
+                    <div class="textarea-container">
+                        <textarea 
+                            id="freeText" 
+                            name="freeText" 
+                            placeholder="{{lang === 'zh' ? '请输入您的反馈、建议或其他说明...' : 'Please enter your feedback, suggestions, or other comments...'}}"
+                            maxlength="1000"
+                            oninput="updateCharCount()"
+                        ></textarea>
+                        <div class="char-count">
+                            <span id="charCount">0</span>/1000
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                        {{lang === 'zh' ? '清空' : 'Clear'}}
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="btn-text">{{lang === 'zh' ? '提交反馈' : 'Submit Feedback'}}</span>
+                        <span class="loading">
+                            <span class="spinner"></span>
+                            {{lang === 'zh' ? '提交中...' : 'Submitting...'}}
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = '{{sessionId}}';
+        const lang = '{{lang}}';
+        let currentTheme = '{{theme}}';
+
+        // 字符计数更新
+        function updateCharCount() {
+            const textarea = document.getElementById('freeText');
+            const charCount = document.getElementById('charCount');
+            charCount.textContent = textarea.value.length;
+            
+            if (textarea.value.length > 900) {
+                charCount.style.color = 'var(--warning-color)';
+            } else {
+                charCount.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        // 清空表单
+        function clearForm() {
+            document.getElementById('feedbackForm').reset();
+            updateCharCount();
+        }
+
+        // 主题切换
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const url = new URL(window.location);
+            url.searchParams.set('theme', currentTheme);
+            window.location.href = url.toString();
+        }
+
+        // 显示提示信息
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // 设置加载状态
+        function setLoading(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const loadingSpan = submitBtn.querySelector('.loading');
+            
+            if (loading) {
+                btnText.style.display = 'none';
+                loadingSpan.style.display = 'flex';
+                submitBtn.disabled = true;
+            } else {
+                btnText.style.display = 'block';
+                loadingSpan.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // 显示成功页面
+        function showSuccessPage() {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <div class="success-page">
+                    <div class="success-icon">✓</div>
+                    <h2>${lang === 'zh' ? '感谢您的反馈！' : 'Thank you for your feedback!'}</h2>
+                    <p style="margin-top: 16px; color: var(--text-secondary);">
+                        ${lang === 'zh' ? '您的反馈已成功提交，我们会认真考虑您的建议。' : 'Your feedback has been submitted successfully. We will carefully consider your suggestions.'}
+                    </p>
+                </div>
+            `;
+        }
+
+        // 表单提交处理
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const selectedOptions = Array.from(formData.getAll('options'));
+            const freeText = formData.get('freeText')?.toString().trim();
+            
+            // 验证至少有一种反馈
+            if (selectedOptions.length === 0 && !freeText) {
+                showAlert(lang === 'zh' ? '请至少选择一个选项或填写文字反馈' : 'Please select at least one option or provide text feedback');
+                return;
+            }
+            
+            setLoading(true);
+            
+            try {
+                const response = await fetch(`/api/feedback/${sessionId}/submit`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
+                        freeText: freeText || undefined,
+                        metadata: {
+                            userAgent: navigator.userAgent,
+                            timestamp: new Date().toISOString(),
+                            language: navigator.language,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccessPage();
+                } else {
+                    const errorMessage = result.error?.message || (lang === 'zh' ? '提交失败，请重试' : 'Submission failed, please try again');
+                    showAlert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                showAlert(lang === 'zh' ? '网络错误，请检查连接后重试' : 'Network error, please check your connection and try again');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('feedbackForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // 初始化字符计数
+        updateCharCount();
+    </script>
+</body>
+</html>

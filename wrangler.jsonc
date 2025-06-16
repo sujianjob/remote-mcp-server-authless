@@ -10,8 +10,8 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"migrations": [
 		{
-			"new_sqlite_classes": ["MyMCP"],
-			"tag": "v1"
+			"new_sqlite_classes": ["MyMCP", "WebSocketManager"],
+			"tag": "v2"
 		}
 	],
 	"durable_objects": {
@@ -19,9 +19,20 @@
 			{
 				"class_name": "MyMCP",
 				"name": "MCP_OBJECT"
+			},
+			{
+				"class_name": "WebSocketManager",
+				"name": "WEBSOCKET_MANAGER"
 			}
 		]
 	},
+	"kv_namespaces": [
+		{
+			"binding": "OAUTH_KV",
+			"id": "preview_id",
+			"preview_id": "preview_id"
+		}
+	],
 	"observability": {
 		"enabled": true
 	},
