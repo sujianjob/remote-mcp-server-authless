@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { authenticate, createAuthErrorResponse } from "./auth.js";
+import { D1DatabaseService } from "./services/d1DatabaseService.js";
 
 // 简化的MCP服务器实现，不依赖agents包的复杂会话管理
 export class MyMCP {
@@ -11,10 +12,14 @@ export class MyMCP {
 
 	// 添加env属性以便访问KV和Durable Objects
 	env!: Env;
+	private d1Service?: D1DatabaseService;
 
 	// 初始化方法（保持兼容性）
 	async init() {
-		// 这里可以添加初始化逻辑，目前为空
+		// 初始化D1数据库服务（如果可用）
+		if (this.env?.DB) {
+			this.d1Service = new D1DatabaseService(this.env.DB);
+		}
 	}
 
 	// 获取基础URL
@@ -169,21 +174,54 @@ export class MyMCP {
 	// 处理工具调用请求
 	private async handleToolCall(request: any): Promise<Response> {
 		const { name, arguments: args } = request.params;
+		const startTime = Date.now();
 
 		try {
 			let result;
+			let sessionId: string | undefined;
+
 			switch (name) {
 				case 'interactive_feedback':
 					result = await this.handleInteractiveFeedback(args);
+					// 尝试从结果中提取sessionId
+					if (result?.content?.[0]?.text) {
+						const sessionIdMatch = result.content[0].text.match(/Session ID: ([a-f0-9-]+)/);
+						sessionId = sessionIdMatch?.[1];
+					}
 					break;
 				case 'get_feedback_result':
 					result = await this.handleGetFeedbackResult(args);
+					sessionId = args.sessionId;
 					break;
 				case 'check_feedback_status':
 					result = await this.handleCheckFeedbackStatus(args);
+					sessionId = args.sessionId;
 					break;
 				default:
 					return this.createErrorResponse(request.id, -32601, `Unknown tool: ${name}`);
+			}
+
+			const executionTime = Date.now() - startTime;
+
+			// 记录成功的工具调用到D1数据库
+			if (this.d1Service) {
+				try {
+					await this.d1Service.recordInteraction({
+						session_id: sessionId,
+						tool_name: name,
+						tool_arguments: JSON.stringify(args),
+						tool_result: JSON.stringify(result),
+						execution_time_ms: executionTime,
+						status: 'success',
+						user_id: 'mcp-user', // 可以从请求头获取
+						metadata: JSON.stringify({
+							requestId: request.id,
+							timestamp: new Date().toISOString()
+						})
+					});
+				} catch (dbError) {
+					console.error('Failed to record interaction in D1:', dbError);
+				}
 			}
 
 			const response = {
@@ -198,7 +236,29 @@ export class MyMCP {
 				}
 			});
 		} catch (error) {
+			const executionTime = Date.now() - startTime;
 			console.error(`Tool call error for ${name}:`, error);
+
+			// 记录失败的工具调用到D1数据库
+			if (this.d1Service) {
+				try {
+					await this.d1Service.recordInteraction({
+						tool_name: name,
+						tool_arguments: JSON.stringify(args),
+						execution_time_ms: executionTime,
+						status: 'error',
+						error_message: error instanceof Error ? error.message : 'Unknown error',
+						user_id: 'mcp-user',
+						metadata: JSON.stringify({
+							requestId: request.id,
+							timestamp: new Date().toISOString()
+						})
+					});
+				} catch (dbError) {
+					console.error('Failed to record error interaction in D1:', dbError);
+				}
+			}
+
 			return this.createErrorResponse(request.id, -32000, `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	}
@@ -524,6 +584,11 @@ export default {
 			return handleFeedbackAPI(request, env, ctx);
 		}
 
+		// Analytics API 路由（需要鉴权）
+		if (url.pathname.startsWith("/api/analytics")) {
+			return handleAnalyticsAPI(request, env, ctx);
+		}
+
 		// 反馈界面路由（无需鉴权）
 		if (url.pathname === "/feedback" || url.pathname.startsWith("/feedback/")) {
 			return handleFeedbackUI(request, env, ctx);
@@ -539,6 +604,82 @@ export default {
 		return createNotFoundResponse('请求的资源');
 	},
 };
+
+/**
+ * 处理分析API请求
+ */
+async function handleAnalyticsAPI(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+	const url = new URL(request.url);
+	const { addCorsHeaders } = await import('./utils/response.js');
+
+	// 分析API需要认证
+	const authResult = await authenticate(request, env);
+	if (!authResult.success) {
+		console.log(`Analytics API authentication failed: ${authResult.error}`);
+		const { createUnauthorizedResponse } = await import('./utils/response.js');
+		return addCorsHeaders(
+			createUnauthorizedResponse(authResult.error || "API Key required"),
+			request.headers.get('Origin') || undefined
+		);
+	}
+
+	// 检查是否有D1数据库
+	if (!env.DB) {
+		const { createInternalErrorResponse } = await import('./utils/response.js');
+		return addCorsHeaders(
+			createInternalErrorResponse('D1 database not available'),
+			request.headers.get('Origin') || undefined
+		);
+	}
+
+	// 初始化服务
+	const { D1DatabaseService } = await import('./services/d1DatabaseService.js');
+	const { AnalyticsHandler } = await import('./handlers/analyticsHandler.js');
+	const d1Service = new D1DatabaseService(env.DB);
+	const analyticsHandler = new AnalyticsHandler(d1Service);
+
+	let response: Response;
+
+	try {
+		if (url.pathname === "/api/analytics/sessions") {
+			// 获取反馈会话历史
+			response = await analyticsHandler.handleGetSessionHistory(request);
+		} else if (url.pathname === "/api/analytics/tools") {
+			// 获取工具使用统计
+			response = await analyticsHandler.handleGetToolUsageStats(request);
+		} else if (url.pathname === "/api/analytics/activity") {
+			// 获取每日活动统计
+			response = await analyticsHandler.handleGetDailyActivityStats(request);
+		} else if (url.pathname === "/api/analytics/interactions") {
+			// 获取交互历史
+			response = await analyticsHandler.handleGetInteractionHistory(request);
+		} else if (url.pathname === "/api/analytics/health") {
+			// 获取数据库健康状态
+			response = await analyticsHandler.handleGetDatabaseHealth(request);
+		} else if (url.pathname === "/api/analytics/export") {
+			// 导出数据
+			response = await analyticsHandler.handleExportData(request);
+		} else if (url.pathname === "/api/analytics/cleanup") {
+			// 清理过期数据（仅POST请求）
+			if (request.method === 'POST') {
+				response = await analyticsHandler.handleCleanupExpiredData(request);
+			} else {
+				const { createNotFoundResponse } = await import('./utils/response.js');
+				response = createNotFoundResponse('Analytics端点');
+			}
+		} else {
+			const { createNotFoundResponse } = await import('./utils/response.js');
+			response = createNotFoundResponse('Analytics端点');
+		}
+	} catch (error) {
+		console.error('Analytics API error:', error);
+		const { createInternalErrorResponse } = await import('./utils/response.js');
+		response = createInternalErrorResponse('Analytics API处理失败');
+	}
+
+	// 添加CORS头
+	return addCorsHeaders(response, request.headers.get('Origin') || undefined);
+}
 
 /**
  * 处理反馈API请求

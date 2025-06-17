@@ -7,6 +7,12 @@ declare namespace Cloudflare {
 
 		// 鉴权相关环境变量
 		JWT_SECRET?: string; // JWT签名密钥
+
+		// Durable Object binding for MCP functionality
+		MCP_OBJECT: DurableObjectNamespace;
+
+		// D1 Database for storing feedback interaction history
+		DB: D1Database;
 	}
 }
 interface Env extends Cloudflare.Env {}

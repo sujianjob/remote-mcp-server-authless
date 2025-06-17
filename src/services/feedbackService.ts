@@ -16,9 +16,17 @@ import {
 	KV_KEYS,
 	CONSTANTS
 } from '../types/feedback.js';
+import { D1DatabaseService } from './d1DatabaseService.js';
 
 export class FeedbackService {
-	constructor(private kv: KVNamespace, private env?: any) {}
+	private d1Service?: D1DatabaseService;
+
+	constructor(private kv: KVNamespace, private env?: any) {
+		// 初始化D1数据库服务（如果可用）
+		if (env?.DB) {
+			this.d1Service = new D1DatabaseService(env.DB);
+		}
+	}
 
 	/**
 	 * 创建新的反馈会话
@@ -47,6 +55,42 @@ export class FeedbackService {
 		await this.kv.put(kvKey, JSON.stringify(session), {
 			expirationTtl: kvTtl
 		});
+
+		// 同时存储到D1数据库（如果可用）
+		if (this.d1Service) {
+			try {
+				await this.d1Service.saveFeedbackSession({
+					id: sessionId,
+					title: request.title,
+					message: request.message,
+					status: 'pending',
+					timeout_seconds: timeout,
+					expires_at: expiresAt.toISOString(),
+					created_by: request.metadata?.createdBy || 'unknown',
+					source: request.metadata?.source || 'api',
+					metadata: JSON.stringify(request.metadata || {})
+				});
+
+				// 记录系统事件
+				await this.d1Service.recordSystemEvent({
+					event_type: 'session_created',
+					event_data: JSON.stringify({
+						sessionId,
+						title: request.title,
+						timeout,
+						hasAiContent: !!request.aiContent,
+						hasPredefinedOptions: !!request.predefinedOptions?.length
+					}),
+					session_id: sessionId,
+					user_id: request.metadata?.createdBy,
+					source: 'feedback-service',
+					severity: 'info'
+				});
+			} catch (error) {
+				console.error('Failed to save session to D1:', error);
+				// 不抛出错误，因为KV存储已经成功
+			}
+		}
 
 		// 返回响应
 		return {
@@ -161,6 +205,43 @@ export class FeedbackService {
 		await this.kv.put(kvKey, JSON.stringify(session), {
 			expirationTtl: 3600 // 完成的会话保留1小时
 		});
+
+		// 同时更新D1数据库（如果可用）
+		if (this.d1Service) {
+			try {
+				// 更新会话状态
+				await this.d1Service.updateFeedbackSessionStatus(sessionId, 'completed', submittedAt);
+
+				// 保存反馈响应
+				await this.d1Service.saveFeedbackResponse({
+					session_id: sessionId,
+					free_text: request.freeText,
+					combined_feedback: combinedFeedback,
+					user_agent: request.metadata?.userAgent,
+					ip_address: request.metadata?.ipAddress,
+					submission_metadata: JSON.stringify(request.metadata || {})
+				});
+
+				// 记录系统事件
+				await this.d1Service.recordSystemEvent({
+					event_type: 'feedback_submitted',
+					event_data: JSON.stringify({
+						sessionId,
+						feedbackLength: combinedFeedback.length,
+						hasSelectedOptions: !!request.selectedOptions?.length,
+						hasFreeText: !!request.freeText?.trim(),
+						selectedOptionsCount: request.selectedOptions?.length || 0
+					}),
+					session_id: sessionId,
+					user_id: request.metadata?.userId,
+					source: 'feedback-service',
+					severity: 'info'
+				});
+			} catch (error) {
+				console.error('Failed to save feedback to D1:', error);
+				// 不抛出错误，因为KV存储已经成功
+			}
+		}
 
 		// 发送WebSocket通知
 		await this.notifyStatusChange(sessionId, 'pending', 'completed');
